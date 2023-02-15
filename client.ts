@@ -46,8 +46,13 @@ export class AwxClient {
   }
 
 
-  async getHostID(host_name: string, _throw: boolean = false): Promise<string> {
-    const data = await this.get("/api/v2/hosts/");
+  async getHostIDFromInventory(host_name: string, inventory_id: string, _throw: boolean = false): Promise<string> {
+    const data = await this.get(`/api/v2/inventories/${inventory_id}/hosts/`);
+    return this._getIdFromName(data.results, host_name, "host", _throw);
+  }
+
+  async getHostIDFromGroup(host_name: string, group_id: string, _throw: boolean = false): Promise<string> {
+    const data = await this.get(`/api/v2/groups/${group_id}/hosts/`);
     return this._getIdFromName(data.results, host_name, "host", _throw);
   }
 
@@ -70,8 +75,8 @@ export class AwxClient {
   }
 
 
-  async getGroupID(group_name: string, _throw: boolean = false): Promise<string> {
-    const data = await this.get("/api/v2/groups/");
+  async getGroupID(group_name: string, inventory_id: string, _throw: boolean = false): Promise<string> {
+    const data = await this.get(`/api/v2/inventories/${inventory_id}/groups/`);
     return this._getIdFromName(data.results, group_name, "group", _throw);
   }
 
@@ -161,6 +166,13 @@ export class AwxClient {
       description: group.description,
       inventory: group.inventory_id,
     });
+    return data.id;
+  }
+
+  async createHostInInventory(host_name: string, inventory_id: string): Promise<string>{
+    const data = await this.post(`/api/v2/inventories/${inventory_id}/hosts/`,{
+      name: host_name,
+    })
     return data.id;
   }
 

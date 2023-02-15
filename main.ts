@@ -20,12 +20,12 @@ const project_repo = "https://github.com/kochasoft-sap-automation/ansible-jobs.g
 const project_branch = "main";
 
 // Inventory.
-const inventory_name = "sap-workload";
+const inventory_name = "sap-workload-farzan-5";
 const inventory_description = "An inventory of all the SAP workload VMs.";
 
 // Groups.
 const group_names = [
-  "ASCS",
+  "ASCS0",
   "PAS",
   "AAS",
   "ERS",
@@ -48,13 +48,13 @@ async function main() {
 
   // Setup the Awx server with the project, inventory, grups and create templates.
   // Note that it'll create template for all the playbook exists on the project.
-  //await setupAwx(client);
+  await setupAwx(client);
 
   // Add hosts to groups. We call this functions after a VM created.
-  await addHostToGroup(client, "PAS", "10.123.4.5");
+  await addHostToGroup(client, "PAS", "10.123.5.5");
   await addHostToGroup(client, "AAS", "10.123.4.5");
-  //await addHostToGroup(client, "HANA", "my-host-2");
-  //await addHostToGroup(client, "ERS",  "my-host-3");
+  await addHostToGroup(client, "HANA", "my-host-4");
+  await addHostToGroup(client, "ERS",  "my-host-5");
 
 }
 
@@ -92,7 +92,7 @@ async function setupAwx(client: AwxClient) {
   // Create The groups in the above inventory.
   for (let group_name of group_names) {
     const group_id =
-      await client.getGroupID(group_name) ||
+      await client.getGroupID(group_name, inventory_id) ||
       await client.createGroup(new Group(group_name, inventory_id));
     console.log(`Group ${group_name} id = ${group_id}`);
   }
@@ -113,12 +113,16 @@ async function setupAwx(client: AwxClient) {
 
 
 async function addHostToGroup(client: AwxClient, group_name: string, host_name: string) {
-  const group_id = await client.getGroupID(group_name, true);
   const inventory_id = await client.getInventoryID(inventory_name, true);
+  const group_id = await client.getGroupID(group_name, inventory_id, true);
   
   const host_id = 
-    await client.getHostID(host_name) ||
-    await client.addHostToGroup(host_name, group_id, inventory_id);
+    await client.getHostIDFromInventory(host_name, inventory_id) ||
+    await client.createHostInInventory(host_name, inventory_id);
+
+  
+  await client.getHostIDFromGroup(host_name, group_id) || // Checks if the host is already added to the group.
+  await client.addHostToGroup(host_name, group_id, inventory_id); // If host is not added to the group this will add the host.
   console.log(`Host ${host_name} id = ${host_id}`);
 
 }
