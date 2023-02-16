@@ -1,128 +1,67 @@
 // Copyright (c) 2023 Kochasoft, inc. All rights reserved.
 
 import { AwxClient } from "./client";
-import { Group, Inventory, JobTemplate, Project } from "./entities";
-
-
-// AWX host and credentials.
-const awx_host = "http://52.116.120.232";
-const awx_username = "admin";
-const awx_password = "root";
-
-// Credential for the ansible repo.
-const credential_name = "ansible-repo-token";
-const credential_username = "thakee-kochasoft";
-const credential_token = "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";
-
-// Project from ansible repo.
-const project_name = "ansible-jobs";
-const project_repo = "https://github.com/kochasoft-sap-automation/ansible-jobs.git";
-const project_branch = "main";
-
-// Inventory.
-const inventory_name = "sap-workload-farzan-13";
-const inventory_description = "An inventory of all the SAP workload VMs.";
-
-// Groups.
-const group_names = [
-  "ASCS0",
-  "PAS",
-  "AAS",
-  "ERS",
-  "HANA",
-];
-
-
-// --------------------------------------------------------------------------
-// Nothing to change bellow here
-// --------------------------------------------------------------------------
+import { AwxConfig, Group, Inventory, JobTemplate, Project } from "./entities";
+import { addHostToGroup, launchJobTemplate, setupAwx } from "./helper";
 
 
 async function main() {
+  let config: AwxConfig = new AwxConfig();
+
+  // AWX host and credentials.
+  config.awx_host = "http://52.116.123.213";
+  config.awx_username = "admin";
+  config.awx_password = "root";
+
+  // Credential for the ansible repo.
+  config.credential_name = "ansible-repo-token";
+  config.credential_username = "thakee-kochasoft";
+  config.credential_token = "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";
+
+  // Project from ansible repo.
+  config.project_name = "ansible-jobs";
+  config.project_repo = "https://github.com/kochasoft-sap-automation/ansible-jobs.git";
+  config.project_branch = "main";
+
+  // Inventory.
+  config.inventories = {
+    s4hana : [
+      "ASCS",
+      "PAS",
+      "AAS",
+      "ERS",
+      "HANA",
+    ],
+    netweaver: [
+      "ASCS",
+      "PAS",
+      "AAS",
+      "DB2",
+    ]
+  }
 
   let client: AwxClient = new AwxClient(
-    awx_host,
-    awx_username,
-    awx_password,
+    config.awx_host,
+    config.awx_username,
+    config.awx_password,
   );
 
   // Setup the Awx server with the project, inventory, grups and create templates.
   // Note that it'll create template for all the playbook exists on the project.
-  await setupAwx(client);
+  await setupAwx(client, config);
 
   // Add hosts to groups. We call this functions after a VM created.
-  await addHostToGroup(client, inventory_name, "HANA", "my-host-4");
-  await addHostToGroup(client, inventory_name, "AAS", "10.123.4.5");
-  await addHostToGroup(client, inventory_name, "PAS", "10.123.5.5");
-  await addHostToGroup(client, inventory_name, "AAS", "10.123.5.5");
-  await addHostToGroup(client, inventory_name, "ERS",  "my-host-5");
 
-  // await client.launchJobTemplate("sap-db2-db","sap-workload-farzan");
-  // await client.launchJobTemplate("sap-db2-db","sap-workload-farzan-1");
+  await addHostToGroup(client, "s4hanna", "PAS", "abc");
+
+  await launchJobTemplate(client, "sap-db2-db", "s4hana", {
+    foo : "bar",
+    baz : 42,
+  });
+
 
 }
 
-
-async function setupAwx(client: AwxClient) {
-
-  // TODO: Variablize the org name and create if it's not exists already.
-  const organization_name = "Default";
-  const organization_id = await client.getOrganizationID(organization_name, true);
-  console.log(`Organization ${organization_name} id = ${organization_id}`);
-
-
-  // Create credential if it's not already exists, possible if the last run of
-  // this script failed and we run this again.
-  const credential_id =
-    await client.getCredentialID(credential_name) ||
-    await client.createScmCredential(credential_name, credential_username, credential_token);
-  console.log(`Credential ${credential_name} id = ${credential_id}`);
-
-
-  // Create project if it's not already exists. Otherwise we can re-use the repo.
-  const project_id =
-    await client.getProjectID(project_name) ||
-    await client.createProject(new Project(project_name, credential_id, project_repo, project_branch));
-  console.log(`Project ${project_name} id = ${project_id}`);
-  
-
-  // Create inventory if not exists.
-  const inventory_id =
-    await client.getInventoryID(inventory_name) ||
-    await client.createInventory(new Inventory(inventory_name, organization_id, inventory_description));
-  console.log(`Inventory ${project_name} id = ${inventory_id}`);
-  
-  
-  // Create The groups in the above inventory.
-  for (let group_name of group_names) {
-    const group_id =
-      await client.getGroupID(group_name, inventory_id) ||
-      await client.createGroup(new Group(group_name, inventory_id));
-    console.log(`Group ${group_name} id = ${group_id}`);
-  }
-
-
-  // Create Job template for all the playbooks in the project.
-  for (let playbook of await client.getPlaybooks(project_id)) {
-
-    const job_template_name = playbook.replace(".yml", "").replaceAll("_", "-");
-
-    const job_template_id =
-      await client.getJobTemplateID(job_template_name) ||
-      await client.createJobTemplate(new JobTemplate(job_template_name, inventory_id, project_id, playbook));
-    console.log(`JobTemplate ${job_template_name} id = ${job_template_id}`);
-
-    // const data = await client.launchJobTemplate(job_template_name,inventory_name);
-    // console.log(`\nLaunching details : ${JSON.stringify(data,null,4)}\n`);
-  }
-  
-}
-
-async function addHostToGroup(client: AwxClient, inventory_name: string, group_name: string, host_name: string) {
-  const host_id = await client.addHostToGroup(inventory_name, group_name, host_name); // If host is not added to the group this will add the host.
-  console.log(`Host ${host_name} id = ${host_id}`);
-
-}
 
 
 main();

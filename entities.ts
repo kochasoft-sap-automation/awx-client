@@ -1,5 +1,30 @@
 // Copyright (c) 2023 Kochasoft, inc. All rights reserved.
 
+export class AwxConfig {
+
+  // AWX host and credentials.
+  public awx_host: string = "";
+  public awx_username: string = "";
+  public awx_password: string = "";
+
+  // Credential for the ansible repo.
+  public credential_name: string = "";
+  public credential_username: string = "";
+  public credential_token: string = "";
+
+  // Project from ansible repo.
+  public project_name: string = "";
+  public project_repo: string = "";
+  public project_branch: string = "";
+
+  // Inventories, where:
+  //   key = The name of the inventory.
+  //   val = Names of the groups in that inventory.
+  public inventories: Record<string, string[]> = {};
+
+  constructor() {}
+}
+
 export class Project {
   
   constructor(
@@ -8,8 +33,7 @@ export class Project {
     public repo_url: string,
     public repo_branch: string = "main",
     public description: string = "",
-    ) {}
-    
+  ) {}
 }
 
 
@@ -35,9 +59,9 @@ export class Group {
 export class JobTemplate {
   constructor(
     public name: string,
-    public inventory_id: string,
     public project_id: string,
     public playbook_name: string,
+    public inventory_id: string = "",
     public description: string = "",
     public concurrent: boolean = true,
   ) {}

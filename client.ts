@@ -116,25 +116,17 @@ export class AwxClient {
   // Create methods
   // --------------------------------------------------------------------------
 
-  async createScmCredential(
-    name: string,
-    gh_username: string,
-    gh_token: string,
-  ): Promise<string> {
-
+  async createScmCredential(name: string, gh_username: string, gh_token: string): Promise<string> {
     const data = await this.post("/api/v2/credentials/", {
-      "name" : name,
-      "credential_type" : 2, // SCM (FXIME: this is a magic value here).
-
+      name : name,
+      credential_type : 2, // SCM (FXIME: this is a magic value here).
       // ID of "user", "team", "organization" (all of them are mutually exclusive).
-      "user" : await this.getUserID(),
-
-      "inputs" : {
-        "username" : gh_username,
-        "password" : gh_token,
+      user : await this.getUserID(),
+      inputs : {
+        username : gh_username,
+        password : gh_token,
       }
     });
-
     return data.id;
   }
 
@@ -188,64 +180,30 @@ export class AwxClient {
       project: job_template.project_id,
       playbook: job_template.playbook_name,
       allow_simultaneous: job_template.concurrent,
+      ask_inventory_on_launch: (job_template.inventory_id == "") ? true : false,
     });
     return data.id;
   }
 
 
-  // --------------------------------------------------------------------------
-  // Update methods
-  // --------------------------------------------------------------------------
-
-
-  async addHostToGroup(inventory_name: string, group_name: string, host_name: string ): Promise<string> {
-    const inventory_id = await this.getInventoryID(inventory_name, true);
-    const group_id = await this.getGroupID(group_name, inventory_id, true);
-  
-    // const host_id = 
-    await this.getHostIDFromInventory(host_name, inventory_id) || // Checks if an host is created into an inventory.
-    await this.createHostInInventory(host_name, inventory_id); // Else creates a host into an inventory.
-    
-    const host_id_from_group: string = await this.getHostIDFromGroup(host_name, group_id) // Checks if the host is already added to the group.
-    
-    if(host_id_from_group !== '') return host_id_from_group;
-
-    // Else creates or adds the host into the group.
-    // FIXME: According to the documentation this should return an object, which doesn't.
-    await this.post(`/api/v2/groups/${group_id}/hosts/`,{
+  async addHostToGroup(inventory_id: string, group_id: string, host_name: string): Promise<string> {
+    const data = await this.post(`/api/v2/groups/${group_id}/hosts/`,{
       name: host_name,
       inventory: inventory_id,
     });
-    // FIXME: If above 'FIXME' can return host id then remove this code.
-    const id = await this.getHostIDFromGroup(host_name, group_id);
-    return id;
+    return data.id;
   }
 
 
-  async updateJobTemplateInventory(job_template_id: string, data_job_template: any): Promise<any>{
-    return await this.put(`/api/v2/job_templates/${job_template_id}/`, data_job_template);
+  // Here job_template is the response object from the GET job template request but updated.
+  async updateJobTemplate(job_template_id: string, job_template: any): Promise<any> {
+    return await this.put(`/api/v2/job_templates/${job_template_id}/`, job_template);
   }
 
-  
-  // --------------------------------------------------------------------------
-  // Launch templates functions
-  // --------------------------------------------------------------------------
 
-
-  async launchJobTemplate(job_template_name: string, inventory_name: string):Promise<any>{
-    const job_template_id = await this.getJobTemplateID(job_template_name, true);
-    const data_job_template = await this.getJobTemplate(job_template_id);
-    const data_inventory_id = await this.getInventoryID(inventory_name);
-    data_job_template.inventory = data_inventory_id;
-    await this.updateJobTemplateInventory(job_template_id,data_job_template);
-
-    // TODO: using a get request we can check if the job template can be executed.
-    const data = await this.post(`/api/v2/job_templates/${job_template_id}/launch/`,{
-      "extra_vars": {
-        "survey_var": 7
-      }
-    })
-    return data
+  async launchJobTemplate(job_template_id: string):Promise<any> {
+    const data = await this.post(`/api/v2/job_templates/${job_template_id}/launch/`, {});
+    return data.id;
   }
 
 
@@ -284,6 +242,7 @@ export class AwxClient {
     );
     return response.data;
   }
+
 
   async put(endpoint: string, data:{} | undefined, params: QueryParameters = {}): Promise<any>{
     const response = await axios.put(
