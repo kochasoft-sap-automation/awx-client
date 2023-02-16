@@ -59,7 +59,6 @@ async function main() {
     baz : 42,
   });
 
-
 }
 
 

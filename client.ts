@@ -28,6 +28,11 @@ export class AwxClient {
   }
 
 
+  log(message: string) {
+    console.log(message);
+  }
+
+
   // --------------------------------------------------------------------------
   // Getters
   // --------------------------------------------------------------------------
@@ -96,6 +101,12 @@ export class AwxClient {
     return await this.get(`/api/v2/job_templates/${job_template_id}/`)
   }
 
+  async getJob(job_id: string): Promise<any> {
+    const data = await this.get(`/api/v2/jobs/${job_id}/`);
+    return data;
+  }
+
+
   // Results is a list with the properties .name and .id, it'll find the
   // Result with the given name and return its id.
   _getIdFromName(results: any, name: string,
@@ -140,6 +151,23 @@ export class AwxClient {
       scm_branch: project.repo_branch,
       credential: project.credential_id,
     });
+
+    // TODO: Have a max try to prevent this from an infinite loop with re-try
+    // delay time.
+    const clone_job_id = data.summary_fields.current_job.id;
+    while (true) {
+      const job_data = await this.get(`/api/v2/project_updates/${clone_job_id}/`);
+      console.log(`  Cloning project "${project.name}" status = ${job_data.status}`);
+
+      if (job_data.status == "failed") {
+        throw Error(`Cloning "${project.repo_url}" was failed.\n\njob_data = ${job_data}`);
+      }
+
+      if (job_data.status == "successful") {
+        break;
+      }
+    }
+
     return data.id;
   }
 
