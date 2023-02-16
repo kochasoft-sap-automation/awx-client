@@ -4,6 +4,41 @@ import { AwxClient } from "./client";
 import { AwxConfig, Group, Inventory, JobTemplate, Project } from "./entities";
 
 
+export async function establishConnection(client: AwxClient) {
+
+  const CONNECTION_RETRY_TIME: number = 5; // Will do the re-try in every 5 seconds.
+  const CONNECTION_RETRY_COUNT: number = 10; // Will re-try the connection of totall 5.
+
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+  // Current try for the connection.
+  let connection_try = 1;
+
+  while (connection_try <= CONNECTION_RETRY_COUNT) {
+
+    try {
+      const user_id = await client.getUserID();
+      console.log(`user_id = ${user_id}`);
+      return;
+    } catch (error: any) {
+      switch(error.code) {
+        case "ECONNREFUSED": break;
+        case "ETIMEDOUT": break;
+        default: throw error;
+      }
+
+      if (connection_try > CONNECTION_RETRY_COUNT) throw error;
+      console.log(`Will retry becase ${error.code} in ${CONNECTION_RETRY_TIME} seconds.`);
+    }
+
+    await sleep(CONNECTION_RETRY_TIME * 1000);
+    connection_try += 1;
+    console.log("Retrying connection ...");
+
+  }
+}
+
+
 export async function setupAwx(client: AwxClient, config: AwxConfig) {
 
   // TODO: Variablize the org name and create if it's not exists already.
