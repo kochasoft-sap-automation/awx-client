@@ -50,15 +50,12 @@ async function main() {
   // Note that it'll create template for all the playbook exists on the project.
   await setupAwx(client, config);
 
-  // Add hosts to groups. We call this functions after a VM created.
-
   await addHostToGroup(client, "s4hanna", "PAS", "abc");
 
   await launchJobTemplate(client, "sap-db2-db", "s4hana", {
     foo : "bar",
     baz : 42,
   });
-
 
 }
 

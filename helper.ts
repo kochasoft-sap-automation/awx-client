@@ -12,21 +12,6 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
   console.log(`Organization ${organization_name} id = ${organization_id}`);
 
 
-  // Create credential if it's not already exists, possible if the last run of
-  // this script failed and we run this again.
-  const credential_id =
-    await client.getCredentialID(config.credential_name) ||
-    await client.createScmCredential(config.credential_name, config.credential_username, config.credential_token);
-  console.log(`Credential ${config.credential_name} id = ${credential_id}`);
-
-
-  // Create project if it's not already exists. Otherwise we can re-use the repo.
-  const project_id =
-    await client.getProjectID(config.project_name) ||
-    await client.createProject(new Project(config.project_name, credential_id, config.project_repo, config.project_branch));
-  console.log(`Project ${config.project_name} id = ${project_id}`);
-  
-
   // Create inventory if not exists.
   for (let inventory_name in config.inventories) {
     const inventory_id =
@@ -42,7 +27,22 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
       console.log(`Group ${group_name} id = ${group_id}`);
     }
   }
-  
+
+
+  // Create credential if it's not already exists, possible if the last run of
+  // this script failed and we run this again.
+  const credential_id =
+    await client.getCredentialID(config.credential_name) ||
+    await client.createScmCredential(config.credential_name, config.credential_username, config.credential_token);
+  console.log(`Credential ${config.credential_name} id = ${credential_id}`);
+
+
+  // Create project if it's not already exists. Otherwise we can re-use the repo.
+  const project_id =
+    await client.getProjectID(config.project_name) ||
+    await client.createProject(new Project(config.project_name, credential_id, config.project_repo, config.project_branch));
+  console.log(`Project ${config.project_name} id = ${project_id}`);
+
 
   // Create Job template for all the playbooks in the project.
   for (let playbook of await client.getPlaybooks(project_id)) {
