@@ -46,8 +46,13 @@ export class AwxClient {
   }
 
 
-  async getHostID(host_name: string, _throw: boolean = false): Promise<string> {
-    const data = await this.get("/api/v2/hosts/");
+  async getHostIDFromInventory(host_name: string, inventory_id: string, _throw: boolean = false): Promise<string> {
+    const data = await this.get(`/api/v2/inventories/${inventory_id}/hosts/`);
+    return this._getIdFromName(data.results, host_name, "host", _throw);
+  }
+
+  async getHostIDFromGroup(host_name: string, group_id: string, _throw: boolean = false): Promise<string> {
+    const data = await this.get(`/api/v2/groups/${group_id}/hosts/`);
     return this._getIdFromName(data.results, host_name, "host", _throw);
   }
 
@@ -70,8 +75,8 @@ export class AwxClient {
   }
 
 
-  async getGroupID(group_name: string, _throw: boolean = false): Promise<string> {
-    const data = await this.get("/api/v2/groups/");
+  async getGroupID(group_name: string, inventory_id: string, _throw: boolean = false): Promise<string> {
+    const data = await this.get(`/api/v2/inventories/${inventory_id}/groups/`);
     return this._getIdFromName(data.results, group_name, "group", _throw);
   }
 
@@ -87,9 +92,12 @@ export class AwxClient {
     return data;
   }
 
+  async getJobTemplate(job_template_id: string): Promise<any>{
+    return await this.get(`/api/v2/job_templates/${job_template_id}/`)
+  }
 
   // Results is a list with the properties .name and .id, it'll find the
-  // result with the given name and return its id.
+  // Result with the given name and return its id.
   _getIdFromName(results: any, name: string,
     entry_name: string = "entry", throw_not_found: boolean = true): string {
 
@@ -164,6 +172,13 @@ export class AwxClient {
     return data.id;
   }
 
+  async createHostInInventory(host_name: string, inventory_id: string): Promise<string>{
+    const data = await this.post(`/api/v2/inventories/${inventory_id}/hosts/`,{
+      name: host_name,
+    })
+    return data.id;
+  }
+
 
   async createJobTemplate(job_template: JobTemplate) {
     const data = await this.post("/api/v2/job_templates/", {
@@ -172,6 +187,7 @@ export class AwxClient {
       inventory: job_template.inventory_id,
       project: job_template.project_id,
       playbook: job_template.playbook_name,
+      allow_simultaneous: job_template.concurrent,
     });
     return data.id;
   }
@@ -182,18 +198,61 @@ export class AwxClient {
   // --------------------------------------------------------------------------
 
 
-  async addHostToGroup(host_name: string, group_id: string, inventory_id: string): Promise<string> {
-    const data = await this.post(`/api/v2/groups/${group_id}/hosts/`, {
+  async addHostToGroup(inventory_name: string, group_name: string, host_name: string ): Promise<string> {
+    const inventory_id = await this.getInventoryID(inventory_name, true);
+    const group_id = await this.getGroupID(group_name, inventory_id, true);
+  
+    // const host_id = 
+    await this.getHostIDFromInventory(host_name, inventory_id) || // Checks if an host is created into an inventory.
+    await this.createHostInInventory(host_name, inventory_id); // Else creates a host into an inventory.
+    
+    const host_id_from_group: string = await this.getHostIDFromGroup(host_name, group_id) // Checks if the host is already added to the group.
+    
+    if(host_id_from_group !== '') return host_id_from_group;
+
+    // Else creates or adds the host into the group.
+    // FIXME: According to the documentation this should return an object, which doesn't.
+    await this.post(`/api/v2/groups/${group_id}/hosts/`,{
       name: host_name,
       inventory: inventory_id,
     });
-    return data.id;
+    // FIXME: If above 'FIXME' can return host id then remove this code.
+    const id = await this.getHostIDFromGroup(host_name, group_id);
+    return id;
+  }
+
+
+  async updateJobTemplateInventory(job_template_id: string, data_job_template: any): Promise<any>{
+    return await this.put(`/api/v2/job_templates/${job_template_id}/`, data_job_template);
+  }
+
+  
+  // --------------------------------------------------------------------------
+  // Launch templates functions
+  // --------------------------------------------------------------------------
+
+
+  async launchJobTemplate(job_template_name: string, inventory_name: string):Promise<any>{
+    const job_template_id = await this.getJobTemplateID(job_template_name, true);
+    const data_job_template = await this.getJobTemplate(job_template_id);
+    const data_inventory_id = await this.getInventoryID(inventory_name);
+    data_job_template.inventory = data_inventory_id;
+    await this.updateJobTemplateInventory(job_template_id,data_job_template);
+
+    // TODO: using a get request we can check if the job template can be executed.
+    const data = await this.post(`/api/v2/job_templates/${job_template_id}/launch/`,{
+      "extra_vars": {
+        "survey_var": 7
+      }
+    })
+    return data
   }
 
 
   // --------------------------------------------------------------------------
   // "Low level" internal functions
   // --------------------------------------------------------------------------
+
 
   async get(endpoint: string, params: QueryParameters = {}): Promise<any> {
     const response = await axios.get(
@@ -224,6 +283,20 @@ export class AwxClient {
       }
     );
     return response.data;
+  }
+
+  async put(endpoint: string, data:{} | undefined, params: QueryParameters = {}): Promise<any>{
+    const response = await axios.put(
+      `${this.host_url}${endpoint}`,
+      data,
+      {
+        auth: {
+          username: this.username,
+          password: this.password,
+        },
+        params: params,
+      }
+    );
   }
 
 }

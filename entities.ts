@@ -39,5 +39,6 @@ export class JobTemplate {
     public project_id: string,
     public playbook_name: string,
     public description: string = "",
+    public concurrent: boolean = true,
   ) {}
 }

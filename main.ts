@@ -20,12 +20,12 @@ const project_repo = "https://github.com/kochasoft-sap-automation/ansible-jobs.g
 const project_branch = "main";
 
 // Inventory.
-const inventory_name = "sap-workload";
+const inventory_name = "sap-workload-farzan-13";
 const inventory_description = "An inventory of all the SAP workload VMs.";
 
 // Groups.
 const group_names = [
-  "ASCS",
+  "ASCS0",
   "PAS",
   "AAS",
   "ERS",
@@ -48,13 +48,17 @@ async function main() {
 
   // Setup the Awx server with the project, inventory, grups and create templates.
   // Note that it'll create template for all the playbook exists on the project.
-  //await setupAwx(client);
+  await setupAwx(client);
 
   // Add hosts to groups. We call this functions after a VM created.
-  await addHostToGroup(client, "PAS", "10.123.4.5");
-  await addHostToGroup(client, "AAS", "10.123.4.5");
-  //await addHostToGroup(client, "HANA", "my-host-2");
-  //await addHostToGroup(client, "ERS",  "my-host-3");
+  await addHostToGroup(client, inventory_name, "HANA", "my-host-4");
+  await addHostToGroup(client, inventory_name, "AAS", "10.123.4.5");
+  await addHostToGroup(client, inventory_name, "PAS", "10.123.5.5");
+  await addHostToGroup(client, inventory_name, "AAS", "10.123.5.5");
+  await addHostToGroup(client, inventory_name, "ERS",  "my-host-5");
+
+  // await client.launchJobTemplate("sap-db2-db","sap-workload-farzan");
+  // await client.launchJobTemplate("sap-db2-db","sap-workload-farzan-1");
 
 }
 
@@ -92,7 +96,7 @@ async function setupAwx(client: AwxClient) {
   // Create The groups in the above inventory.
   for (let group_name of group_names) {
     const group_id =
-      await client.getGroupID(group_name) ||
+      await client.getGroupID(group_name, inventory_id) ||
       await client.createGroup(new Group(group_name, inventory_id));
     console.log(`Group ${group_name} id = ${group_id}`);
   }
@@ -107,18 +111,15 @@ async function setupAwx(client: AwxClient) {
       await client.getJobTemplateID(job_template_name) ||
       await client.createJobTemplate(new JobTemplate(job_template_name, inventory_id, project_id, playbook));
     console.log(`JobTemplate ${job_template_name} id = ${job_template_id}`);
+
+    // const data = await client.launchJobTemplate(job_template_name,inventory_name);
+    // console.log(`\nLaunching details : ${JSON.stringify(data,null,4)}\n`);
   }
   
 }
 
-
-async function addHostToGroup(client: AwxClient, group_name: string, host_name: string) {
-  const group_id = await client.getGroupID(group_name, true);
-  const inventory_id = await client.getInventoryID(inventory_name, true);
-  
-  const host_id = 
-    await client.getHostID(host_name) ||
-    await client.addHostToGroup(host_name, group_id, inventory_id);
+async function addHostToGroup(client: AwxClient, inventory_name: string, group_name: string, host_name: string) {
+  const host_id = await client.addHostToGroup(inventory_name, group_name, host_name); // If host is not added to the group this will add the host.
   console.log(`Host ${host_name} id = ${host_id}`);
 
 }
