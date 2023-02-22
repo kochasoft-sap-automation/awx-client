@@ -45,6 +45,13 @@ export class AwxClient {
   }
 
 
+  async getUser(): Promise<any> {
+    const data = await this.get("/api/v2/me");
+    assert(data.results.length >= 1);
+    return data.results[0];
+  }
+
+
   async getOrganizationID(organization_name: string, _throw: boolean = false): Promise<string> {
     const data = await this.get("/api/v2/organizations/");
     return this._getIdFromName(data.results, organization_name, "organization", _throw);
@@ -232,6 +239,22 @@ export class AwxClient {
   async launchJobTemplate(job_template_id: string):Promise<any> {
     const data = await this.post(`/api/v2/job_templates/${job_template_id}/launch/`, {});
     return data.id;
+  }
+
+  async updateUserPassword(newPassword: string): Promise<any>{
+    const user = await this.getUser();
+    const user_id = user.id;
+    const user_input:{} = {
+      "email": user.email,
+      "first_name": user.first_name,
+      "is_superuser": user.is_superuser,
+      "is_system_auditor": user.is_system_auditor,
+      "last_name": user.last_name,
+      "password": newPassword,
+      "username": user.username,
+    }
+
+    return await this.put(`/api/v2/users/${user_id}/`, user_input);
   }
 
 

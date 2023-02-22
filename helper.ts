@@ -105,6 +105,11 @@ export async function addHostToGroup(client: AwxClient, inventory_name: string, 
 }
 
 
+export async function ChangeUserPassowrd(client: AwxClient, newPassword: string) {
+  const response = await client.updateUserPassword(newPassword);
+  console.log("response : ",response)
+}
+
 
 // Here variables should be a json object.
 export async function launchJobTemplate(client: AwxClient, job_template_name: string, inventory_name: string, variables: any = {}) {

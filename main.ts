@@ -2,14 +2,14 @@
 
 import { AwxClient } from "./client";
 import { AwxConfig, Group, Inventory, JobTemplate, Project } from "./entities";
-import { addHostToGroup, launchJobTemplate, setupAwx } from "./helper";
+import { addHostToGroup, launchJobTemplate, setupAwx, ChangeUserPassowrd } from "./helper";
 
 
 async function main() {
   let config: AwxConfig = new AwxConfig();
 
   // AWX host and credentials.
-  config.awx_host = "http://52.116.123.213";
+  config.awx_host = "http://52.116.120.232";
   config.awx_username = "admin";
   config.awx_password = "root";
 
@@ -37,6 +37,10 @@ async function main() {
       "PAS",
       "AAS",
       "DB2",
+    ],
+    farzan : [
+      "ML",
+      "DL",
     ]
   }
 
@@ -48,15 +52,16 @@ async function main() {
 
   // Setup the Awx server with the project, inventory, grups and create templates.
   // Note that it'll create template for all the playbook exists on the project.
-  await setupAwx(client, config);
+  // await setupAwx(client, config);
 
-  await addHostToGroup(client, "s4hanna", "PAS", "abc");
+  // await addHostToGroup(client, "s4hana", "PAS", "abc");
 
-  await launchJobTemplate(client, "sap-db2-db", "s4hana", {
-    foo : "bar",
-    baz : 42,
-  });
+  // await launchJobTemplate(client, "sap-db2-db", "s4hana", {
+  //   foo : "bar",
+  //   baz : 42,
+  // });
 
+  // await ChangeUserPassowrd(client,"root123");
 }
 
 
