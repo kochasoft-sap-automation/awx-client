@@ -151,7 +151,6 @@ export class AwxClient {
     return data.id;
   }
 
-
   
   async createSshCredential(name: string, private_key: string): Promise<string> {
     const data = await this.post("/api/v2/credentials/", {
@@ -172,9 +171,6 @@ export class AwxClient {
     });
     return data.id;
   }
-
-
-
 
 
   async createProject(project: Project): Promise<string> {

@@ -56,9 +56,14 @@ export class AwxConfig {
   public awx_password: string = "";
 
   // Credential for the ansible repo.
-  public credential_name: string = "";
-  public credential_username: string = "";
-  public credential_token: string = "";
+  public gh_token_name: string = "";
+  public gh_token_username: string = "";
+  public gh_token_value: string = "";
+
+
+  // Credential for the ssh key.
+  public ssh_key_name: string = "";
+  public ssh_private_key_value: string = "";
 
   // Project from ansible repo.
   public project_name: string = "";
