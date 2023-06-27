@@ -42,7 +42,7 @@ export class JobTemplate {
     public project_id: string,
     public playbook_name: string,
     public organization_id: string,
-    public ssh_private_keys: string[],
+    public ssh_private_key: string,
     public inventory_id: string = "",
     public description: string = "",
     public concurrent: boolean = true,

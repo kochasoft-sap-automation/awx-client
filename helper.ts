@@ -85,7 +85,7 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
     const job_template_name = playbook.replace(".yml", "").replaceAll("_", "-");
     const job_template_id =
       await client.getJobTemplateID(job_template_name) ||
-      await client.createJobTemplate(new JobTemplate(job_template_name, project_id, playbook, organization_id, [ssh_key_name]));
+      await client.createJobTemplate(new JobTemplate(job_template_name, project_id, playbook, organization_id, ssh_key_name));
     console.log(`JobTemplate ${job_template_name} id = ${job_template_id}`);
   }
 
@@ -104,8 +104,6 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
       await client.createWorkflowJobTemplateNode(new WorkflowJobTemplateNode(workflow_job_template_id, job_template_name, job_template_name, "run"))
     }
   }
-
-
 
 }
 

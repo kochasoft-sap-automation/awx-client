@@ -258,7 +258,7 @@ export class AwxClient {
       name: job_template.name,
       description: job_template.description,
       organization: job_template.organization_id,
-      credentials: job_template.ssh_private_keys,
+      credentials: [job_template.ssh_private_key],
       inventory: job_template.inventory_id,
       project: job_template.project_id,
       playbook: job_template.playbook_name,
