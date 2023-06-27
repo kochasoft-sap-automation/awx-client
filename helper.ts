@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Kochasoft, inc. All rights reserved.
 
 import { AwxClient } from "./client";
-import { AwxConfig, Group, Inventory, JobTemplate, Project } from "./entities";
+import { AwxConfig, Group, Inventory, JobTemplate, Project, WorkflowJobTemplate, WorkflowJobTemplateNode } from "./entities";
 
 
 export async function establishConnection(client: AwxClient) {
@@ -66,10 +66,11 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
   
   
   // Create SSH key if it's not already exists.
+  const ssh_key_name = config.ssh_key_name
   const ssh_key_id =
-    await client.getCredentialID(config.ssh_key_name) ||
-    await client.createSshCredential(config.ssh_key_name, config.ssh_private_key_value);
-  console.log(`SSH key ${config.gh_token_name} id = ${ssh_key_id}`);
+    await client.getCredentialID(ssh_key_name) ||
+    await client.createSshCredential(ssh_key_name, config.ssh_private_key_value);
+  console.log(`SSH key ${ssh_key_name} id = ${ssh_key_id}`);
 
 
   // Create project if it's not already exists. Otherwise we can re-use the repo.
@@ -84,8 +85,24 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
     const job_template_name = playbook.replace(".yml", "").replaceAll("_", "-");
     const job_template_id =
       await client.getJobTemplateID(job_template_name) ||
-      await client.createJobTemplate(new JobTemplate(job_template_name, project_id, playbook));
+      await client.createJobTemplate(new JobTemplate(job_template_name, project_id, playbook, organization_id, ssh_key_name));
     console.log(`JobTemplate ${job_template_name} id = ${job_template_id}`);
+  }
+
+
+  // Create workflow job template.
+  const workflow_job_template_names: string[] = ["SAP_ABAP_Deployment", "SAP_JAVA_Deployment", "SAP_Webdispatcher_Deployment"]
+  for (let workflow_template_name of workflow_job_template_names) {
+    const workflow_job_template_id =
+      await client.getWorkflowJobTemplateID(workflow_template_name) ||
+      await client.createWorkflowJobTemplate(new WorkflowJobTemplate(workflow_template_name, organization_id));
+    console.log(`WorkflowJobTemplate ${workflow_template_name} id = ${workflow_job_template_id}`)
+
+    // Create workflow job tempate node
+    const job_template_names: string[] = ["server-prep", "sap-media", "sap-abap-system-dist"]
+    for (let job_template_name of job_template_names) {
+      await client.createWorkflowJobTemplateNode(new WorkflowJobTemplateNode(workflow_job_template_id, job_template_name, job_template_name, "run"))
+    }
   }
 
 }

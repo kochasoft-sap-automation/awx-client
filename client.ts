@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Kochasoft, inc. All rights reserved.
 
 import axios from 'axios';
-import { Group, Inventory, JobTemplate, Project } from './entities';
+import { Group, Inventory, JobTemplate, Project, WorkflowJobTemplate, WorkflowJobTemplateNode } from './entities';
 
 
 type QueryParameters = Record<string, string>;
@@ -90,6 +90,12 @@ export class AwxClient {
   async getJobTemplateID(job_template_name: string, _throw: boolean = false): Promise<string> {
     const data = await this.get("/api/v2/job_templates/");
     return this._getIdFromName(data.results, job_template_name, "job_template", _throw);    
+  }
+
+
+  async getWorkflowJobTemplateID(workflow_job_template_name: string, _throw: boolean = false): Promise<string> {
+    const data = await this.get("/api/v2/workflow_job_templates/");
+    return this._getIdFromName(data.results, workflow_job_template_name, "workflow_job_template", _throw)
   }
 
 
@@ -251,6 +257,8 @@ export class AwxClient {
     const data = await this.post("/api/v2/job_templates/", {
       name: job_template.name,
       description: job_template.description,
+      organization: job_template.organization_id,
+      credentials: [job_template.ssh_private_key],
       inventory: job_template.inventory_id,
       project: job_template.project_id,
       playbook: job_template.playbook_name,
@@ -258,6 +266,29 @@ export class AwxClient {
       ask_inventory_on_launch: (job_template.inventory_id == "") ? true : false,
     });
     return data.id;
+  }
+
+
+  async createWorkflowJobTemplate(workflow_job_template: WorkflowJobTemplate) {
+    const data = await this.post("/api/v2/workflow_job_templates/", {
+      name: workflow_job_template.name,
+      description: workflow_job_template.description,
+      organization: workflow_job_template.organization_id,
+      inventory: workflow_job_template.inventory_id,
+      allow_simultaneous: workflow_job_template.concurrent,
+      ask_inventory_on_launch: (workflow_job_template.inventory_id == "") ? true : false,
+    });
+  }
+
+
+  async createWorkflowJobTemplateNode(workflow_job_template_node: WorkflowJobTemplateNode) {
+    const data = await this.post("/api/v2/workflow_job_template_nodes/", {
+      workflow_job_template: workflow_job_template_node.workflow_job_template_id,
+      unified_job_template: workflow_job_template_node.unified_job_template_id,
+      identifier: workflow_job_template_node.identifier,
+      job_type: workflow_job_template_node.job_type,
+      inventory: workflow_job_template_node.inventory_id,
+    });
   }
 
 
