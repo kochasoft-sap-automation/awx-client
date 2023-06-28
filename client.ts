@@ -258,13 +258,14 @@ export class AwxClient {
       name: job_template.name,
       description: job_template.description,
       organization: job_template.organization_id,
-      credentials: [job_template.ssh_private_key],
       inventory: job_template.inventory_id,
+      credentials: [4],
       project: job_template.project_id,
       playbook: job_template.playbook_name,
       allow_simultaneous: job_template.concurrent,
       ask_inventory_on_launch: (job_template.inventory_id == "") ? true : false,
     });
+
     return data.id;
   }
 
@@ -278,6 +279,8 @@ export class AwxClient {
       allow_simultaneous: workflow_job_template.concurrent,
       ask_inventory_on_launch: (workflow_job_template.inventory_id == "") ? true : false,
     });
+
+    return data.id;
   }
 
 
@@ -285,10 +288,23 @@ export class AwxClient {
     const data = await this.post("/api/v2/workflow_job_template_nodes/", {
       workflow_job_template: workflow_job_template_node.workflow_job_template_id,
       unified_job_template: workflow_job_template_node.unified_job_template_id,
-      identifier: workflow_job_template_node.identifier,
-      job_type: workflow_job_template_node.job_type,
-      inventory: workflow_job_template_node.inventory_id,
+      inventory: 4,
+      // identifier: workflow_job_template_node.identifier,
+      // job_type: workflow_job_template_node.job_type,
     });
+    
+    return data.id
+  }
+
+
+  async createWorkflowJobTemplateNodeFromNode(workflow_job_template_node: WorkflowJobTemplateNode, node_id: string){
+    const data = await this.post(`/api/v2/workflow_job_template_nodes/${node_id}/success_nodes/`, {
+      workflow_job_template: workflow_job_template_node.workflow_job_template_id,
+      unified_job_template: workflow_job_template_node.unified_job_template_id,
+      inventory: 4,
+    });
+
+    return data.id
   }
 
 

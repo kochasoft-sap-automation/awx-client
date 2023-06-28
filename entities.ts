@@ -54,7 +54,7 @@ export class WorkflowJobTemplate {
   constructor(
     public name: string,
     public organization_id: string,
-    public inventory_id: string = "",
+    public inventory_id: string,
     public description: string = "",
     public concurrent: boolean = true,
   ) {}
@@ -65,9 +65,9 @@ export class WorkflowJobTemplateNode {
   constructor(
     public workflow_job_template_id: string | void,
     public unified_job_template_id: string,
-    public identifier: string,
-    public job_type: string,
     public inventory_id: string = "",
+    // public identifier: string,
+    // public job_type: string,
   ) {}
 }
 
