@@ -1,5 +1,7 @@
 // Copyright (c) 2023 Kochasoft, inc. All rights reserved.
 
+import { assert } from "console";
+
 export class Project {
   
   constructor(
@@ -13,8 +15,6 @@ export class Project {
 
 
 export class Inventory {
-
-  
   constructor(
     public name: string,
     public group_names: string[] = [],
@@ -50,25 +50,76 @@ export class JobTemplate {
 }
 
 
-export class WorkflowJobTemplate {
+export class WorkflowTemplate {
+
+  public wt_id: string = "";
+  public inventory_id: string = "";
+  public first_node: WorkflowNode | null = null;
+
   constructor(
     public name: string,
-    public organization_id: string,
-    public inventory_id: string = "",
+    public default_inventory_name: string,
     public description: string = "",
     public concurrent: boolean = true,
   ) {}
+
+  public createNode(job_template_name: string) : WorkflowNode {
+    this.first_node = new WorkflowNode("none", job_template_name);
+    this.first_node.workflow_template = this;
+    return this.first_node;
+  }
+
 }
 
 
-export class WorkflowJobTemplateNode {
+export class WorkflowNode {
+
+  public workflow_template: WorkflowTemplate | null = null;
+  public job_template_id: string = "";
+
+  public always_nodes: WorkflowNode[] = [];
+  public success_nodes: WorkflowNode[] = [];
+  public failure_nodes: WorkflowNode[] = [];
+
   constructor(
-    public workflow_job_template_id: string | void,
-    public unified_job_template_id: string,
-    public identifier: string,
-    public job_type: string,
-    public inventory_id: string = "",
+    public node_type: string,
+    public job_template_name: string,
   ) {}
+
+  public createNode(node_type: string, job_template_name: string) : WorkflowNode {
+
+    let next_node = new WorkflowNode(node_type, job_template_name);
+    next_node.workflow_template = this.workflow_template;
+
+    switch (node_type) {
+      case "none":
+        throw "Bug! Cannot create none type node";
+      case "always":
+        this.always_nodes.push(next_node);
+        break;
+      case "success":
+        this.always_nodes.push(next_node);
+        break;
+      case "failure":
+        this.always_nodes.push(next_node);
+        break;
+      default:
+        throw `Invalid node type. ${node_type}`;
+    }
+    return next_node;
+  }
+
+  public getTypeEndpoint(): string {
+    return `${this.node_type}_nodes`;
+  }
+
+  public done(): WorkflowTemplate {
+    if (! (this.workflow_template instanceof WorkflowTemplate)) {
+      throw "workflow_template was null";
+    }
+    return this.workflow_template;
+  }
+
 }
 
 
@@ -95,6 +146,8 @@ export class AwxConfig {
   public project_branch: string = "";
 
   public inventories: Inventory[] = [];
+
+  public workflow_templates: WorkflowTemplate[] = [];
 
   constructor() {}
 }

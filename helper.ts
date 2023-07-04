@@ -1,7 +1,7 @@
 // Copyright (c) 2023 Kochasoft, inc. All rights reserved.
 
 import { AwxClient } from "./client";
-import { AwxConfig, Group, Inventory, JobTemplate, Project, WorkflowJobTemplate, WorkflowJobTemplateNode } from "./entities";
+import { AwxConfig, JobTemplate, Project, WorkflowNode } from "./entities";
 
 
 export async function establishConnection(client: AwxClient) {
@@ -48,7 +48,6 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
 
   // Create inventory if not exists.
   for (let inventory of config.inventories) {
-
     inventory.organization_id = organization_id;
     const inventory_id =
       await client.getInventoryID(inventory.name) ||
@@ -90,19 +89,39 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
   }
 
 
-  // Create workflow job template.
-  const workflow_job_template_names: string[] = ["SAP_ABAP_Deployment", "SAP_JAVA_Deployment", "SAP_Webdispatcher_Deployment"]
-  for (let workflow_template_name of workflow_job_template_names) {
-    const workflow_job_template_id =
-      await client.getWorkflowJobTemplateID(workflow_template_name) ||
-      await client.createWorkflowJobTemplate(new WorkflowJobTemplate(workflow_template_name, organization_id));
-    console.log(`WorkflowJobTemplate ${workflow_template_name} id = ${workflow_job_template_id}`)
+  async function createNode(parent_node_id: string | null, node: WorkflowNode | null) {
 
-    // Create workflow job tempate node
-    const job_template_names: string[] = ["server-prep", "sap-media", "sap-abap-system-dist"]
-    for (let job_template_name of job_template_names) {
-      await client.createWorkflowJobTemplateNode(new WorkflowJobTemplateNode(workflow_job_template_id, job_template_name, job_template_name, "run"))
+    if (node === null) return;
+
+    node.job_template_id = await client.getJobTemplateID(node.job_template_name);
+    let current_node_id: string = "";
+
+    if (parent_node_id === null) {
+      current_node_id = await client.createWorkflowTemplateNode(node);
+      console.log(`Node id = ${current_node_id}`);
+
+    } else {
+      current_node_id = await client.createWorkflowTemplateNodeFromNode(parent_node_id, node);
+      console.log(`Node id = ${current_node_id}`);
     }
+
+    for (let child_node of node.always_nodes) await createNode(current_node_id, child_node);
+    for (let child_node of node.success_nodes) await createNode(current_node_id, child_node);
+    for (let child_node of node.failure_nodes) await createNode(current_node_id, child_node);
+
+  }
+
+
+  for (let workflow_template of config.workflow_templates) {
+    const workflow_id =
+      await client.getWorkflowTemplateID(workflow_template.name) ||
+      await client.createWorkflowTemplate(workflow_template);
+    console.log(`WorkflowTemplate ${workflow_template.name} id = ${workflow_id}`);
+
+    workflow_template.wt_id = workflow_id;
+    workflow_template.inventory_id = await client.getInventoryID(workflow_template.default_inventory_name);
+
+    await createNode(null, workflow_template.first_node);
   }
 
 }
@@ -113,7 +132,6 @@ export async function addHostToGroup(client: AwxClient, inventory_name: string, 
 
   const inventory_id = await client.getInventoryID(inventory_name, true);
   const group_id = await client.getGroupID(group_name, inventory_id, true);
-
 
   let host_id =
     await client.getHostIDFromInventory(host_name, inventory_id) ||

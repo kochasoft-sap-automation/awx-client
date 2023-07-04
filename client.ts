@@ -1,7 +1,10 @@
 // Copyright (c) 2023 Kochasoft, inc. All rights reserved.
 
+// Reference: https://docs.ansible.com/ansible-tower/latest/html/towerapi/api_ref.html
+
+
 import axios from 'axios';
-import { Group, Inventory, JobTemplate, Project, WorkflowJobTemplate, WorkflowJobTemplateNode } from './entities';
+import { Group, Inventory, JobTemplate, Project, WorkflowNode, WorkflowTemplate } from './entities';
 
 
 type QueryParameters = Record<string, string>;
@@ -93,7 +96,7 @@ export class AwxClient {
   }
 
 
-  async getWorkflowJobTemplateID(workflow_job_template_name: string, _throw: boolean = false): Promise<string> {
+  async getWorkflowTemplateID(workflow_job_template_name: string, _throw: boolean = false): Promise<string> {
     const data = await this.get("/api/v2/workflow_job_templates/");
     return this._getIdFromName(data.results, workflow_job_template_name, "workflow_job_template", _throw)
   }
@@ -258,37 +261,60 @@ export class AwxClient {
       name: job_template.name,
       description: job_template.description,
       organization: job_template.organization_id,
-      credentials: [job_template.ssh_private_key],
       inventory: job_template.inventory_id,
       project: job_template.project_id,
       playbook: job_template.playbook_name,
       allow_simultaneous: job_template.concurrent,
       ask_inventory_on_launch: (job_template.inventory_id == "") ? true : false,
     });
+
     return data.id;
   }
 
 
-  async createWorkflowJobTemplate(workflow_job_template: WorkflowJobTemplate) {
+  async createWorkflowTemplate(workflow_job_template: WorkflowTemplate) {
     const data = await this.post("/api/v2/workflow_job_templates/", {
-      name: workflow_job_template.name,
-      description: workflow_job_template.description,
-      organization: workflow_job_template.organization_id,
-      inventory: workflow_job_template.inventory_id,
-      allow_simultaneous: workflow_job_template.concurrent,
-      ask_inventory_on_launch: (workflow_job_template.inventory_id == "") ? true : false,
+      name                    : workflow_job_template.name,
+      description             : workflow_job_template.description,
+      // organization            : workflow_job_template.organization_id, // TODO (arafath):
+      allow_simultaneous      : workflow_job_template.concurrent,
+      ask_inventory_on_launch : true, // TODO (thakee):
     });
+
+    return data.id;
   }
 
 
-  async createWorkflowJobTemplateNode(workflow_job_template_node: WorkflowJobTemplateNode) {
+  async createWorkflowTemplateNode(node: WorkflowNode) {
+    assert(node.workflow_template != null, "workflow_template attribute of node was null.");
+    assert(node.workflow_template?.wt_id != "", "workflow template id (wt_id) was empty");
+    assert(node.job_template_id != "", "job template id of node was empty.");
+    assert(node.workflow_template?.inventory_id != "", "inventory id of workflow template was empty.");
+
     const data = await this.post("/api/v2/workflow_job_template_nodes/", {
-      workflow_job_template: workflow_job_template_node.workflow_job_template_id,
-      unified_job_template: workflow_job_template_node.unified_job_template_id,
-      identifier: workflow_job_template_node.identifier,
-      job_type: workflow_job_template_node.job_type,
-      inventory: workflow_job_template_node.inventory_id,
+      workflow_job_template: node.workflow_template?.wt_id,
+      unified_job_template: node.job_template_id,
+      inventory: node.workflow_template?.inventory_id,
     });
+
+    return data.id;
+  }
+
+
+  async createWorkflowTemplateNodeFromNode(node_id: string, node: WorkflowNode) {
+    assert(node.workflow_template != null, "workflow_template attribute of node was null.");
+    assert(node.workflow_template?.wt_id != "", "workflow template id (wt_id) was empty");
+    assert(node.job_template_id != "", "job template id of node was empty.");
+    assert(node.workflow_template?.inventory_id != "", "inventory id of workflow template was empty.");
+
+    const type_endpoint = node.getTypeEndpoint();
+    const data = await this.post(`/api/v2/workflow_job_template_nodes/${node_id}/${type_endpoint}/`, {
+      workflow_job_template: node.workflow_template?.wt_id,
+      unified_job_template: node.job_template_id,
+      inventory: node.workflow_template?.inventory_id,
+    });
+
+    return data.id;
   }
 
 
@@ -307,12 +333,12 @@ export class AwxClient {
   }
 
 
-  async launchJobTemplate(job_template_id: string):Promise<any> {
+  async launchJobTemplate(job_template_id: string): Promise<any> {
     const data = await this.post(`/api/v2/job_templates/${job_template_id}/launch/`, {});
     return data.id;
   }
 
-  async updatePassword(new_password: string): Promise<any>{
+  async updatePassword(new_password: string): Promise<any> {
     const user = await this.getUser();
     const user_id = user.id;
     const user_input: any = {
