@@ -113,6 +113,11 @@ export class AwxClient {
   }
 
 
+  async getWorkflowTemplate(workflow_template_id: string): Promise<any>{
+    return await this.get(`/api/v2/workflow_job_templates/${workflow_template_id}/`)
+  }
+
+
   async getJob(job_id: string): Promise<any> {
     const data = await this.get(`/api/v2/jobs/${job_id}/`);
     return data;
@@ -337,6 +342,18 @@ export class AwxClient {
     const data = await this.post(`/api/v2/job_templates/${job_template_id}/launch/`, {});
     return data.id;
   }
+
+
+  async updateWorkflowTemplate(workflow_template_id: string, workflow_template: any): Promise<any> {
+    return await this.put(`/api/v2/workflow_job_templates/${workflow_template_id}/`, workflow_template);
+  }
+
+
+  async launchWorkflowTemplate(workflow_template_id: string): Promise<any> {
+    const data = await this. post(`/api/v2/workflow_job_templates/${workflow_template_id}/launch/`, {});
+    return data.id
+  }
+
 
   async updatePassword(new_password: string): Promise<any> {
     const user = await this.getUser();
