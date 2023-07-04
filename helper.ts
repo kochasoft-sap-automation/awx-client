@@ -160,3 +160,18 @@ export async function launchJobTemplate(client: AwxClient, job_template_name: st
   const job_id = await client.launchJobTemplate(job_template_id);
   console.log(`job id = ${job_id}`);
 }
+
+
+export async function launchWorkflowTemplate(client: AwxClient, workflow_template_name: string, inventory_name: string, variables: any = {}){
+
+  const workflow_template_id = await client.getWorkflowTemplateID(workflow_template_name, true);
+  const workflow_template = await client.getWorkflowTemplate(workflow_template_id);
+
+  workflow_template.inventory = await client.getInventoryID(inventory_name, true);
+  workflow_template.extra_vars = JSON.stringify(variables);
+  workflow_template.ask_inventory_on_launch = false;
+
+  await client.updateWorkflowTemplate(workflow_template_id, workflow_template);
+  const workflow_id = await client.launchWorkflowTemplate(workflow_template_id);
+  console.log(`workflow id = ${workflow_id}`);
+}
