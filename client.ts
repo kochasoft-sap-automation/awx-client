@@ -273,6 +273,10 @@ export class AwxClient {
       ask_inventory_on_launch: (job_template.inventory_id == "") ? true : false,
     });
 
+
+    const resp = await this.post(`/api/v2/job_templates/${data.id}/credentials/`, {
+      id: job_template.ssh_private_key_id
+    });
     return data.id;
   }
 
@@ -350,8 +354,15 @@ export class AwxClient {
 
 
   async launchWorkflowTemplate(workflow_template_id: string): Promise<any> {
-    const data = await this. post(`/api/v2/workflow_job_templates/${workflow_template_id}/launch/`, {});
+    const data = await this.post(`/api/v2/workflow_job_templates/${workflow_template_id}/launch/`, {});
     return data.id
+  }
+
+
+  async getJobStatus(job_id: string): Promise<any> {
+    const data = await this.get(`/api/v2/jobs/${job_id}/`);
+
+    return data
   }
 
 
@@ -411,6 +422,21 @@ export class AwxClient {
 
   async put(endpoint: string, data:{} | undefined, params: QueryParameters = {}): Promise<any>{
     const response = await axios.put(
+      `${this.host_url}${endpoint}`,
+      data,
+      {
+        auth: {
+          username: this.username,
+          password: this.password,
+        },
+        params: params,
+      }
+    );
+  }
+
+
+  async patch(endpoint: string, data:{} | undefined, params: QueryParameters = {}): Promise<any>{
+    const response = await axios.patch(
       `${this.host_url}${endpoint}`,
       data,
       {

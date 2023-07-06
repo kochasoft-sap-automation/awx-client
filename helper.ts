@@ -84,7 +84,7 @@ export async function setupAwx(client: AwxClient, config: AwxConfig) {
     const job_template_name = playbook.replace(".yml", "").replaceAll("_", "-");
     const job_template_id =
       await client.getJobTemplateID(job_template_name) ||
-      await client.createJobTemplate(new JobTemplate(job_template_name, project_id, playbook, organization_id, ssh_key_name));
+      await client.createJobTemplate(new JobTemplate(job_template_name, project_id, playbook, organization_id, ssh_key_id));
     console.log(`JobTemplate ${job_template_name} id = ${job_template_id}`);
   }
 
@@ -159,6 +159,8 @@ export async function launchJobTemplate(client: AwxClient, job_template_name: st
   await client.updateJobTemplate(job_template_id, job_template);
   const job_id = await client.launchJobTemplate(job_template_id);
   console.log(`job id = ${job_id}`);
+
+  return job_id;
 }
 
 
@@ -172,6 +174,16 @@ export async function launchWorkflowTemplate(client: AwxClient, workflow_templat
   workflow_template.ask_inventory_on_launch = false;
 
   await client.updateWorkflowTemplate(workflow_template_id, workflow_template);
-  const workflow_id = await client.launchWorkflowTemplate(workflow_template_id);
-  console.log(`workflow id = ${workflow_id}`);
+  const job_id = await client.launchWorkflowTemplate(workflow_template_id);
+  console.log(`job id = ${job_id}`);
+
+  return job_id;
+}
+
+
+export async function get_job_status(client: AwxClient, job_id: string) {
+
+  const job_data = await client.getJobStatus(job_id);
+
+  return job_data.status;
 }
