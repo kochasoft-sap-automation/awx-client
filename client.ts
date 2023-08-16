@@ -288,6 +288,7 @@ export class AwxClient {
       // organization            : workflow_job_template.organization_id, // TODO (arafath):
       allow_simultaneous      : workflow_job_template.concurrent,
       ask_inventory_on_launch : true, // TODO (thakee):
+      extra_vars              : JSON.stringify(workflow_job_template.variables),
     });
 
     return data.id;

@@ -59,6 +59,7 @@ export class WorkflowTemplate {
   constructor(
     public name: string,
     public default_inventory_name: string,
+    public variables: object = {},
     public description: string = "",
     public concurrent: boolean = true,
   ) {}
